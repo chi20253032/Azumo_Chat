@@ -1,0 +1,1917 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azumofuyuki マイクラサーバー チャット</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: VT323 & Noto Sans JP -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=VT323&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mc: {
+                            bg: '#121212',
+                            panel: '#1e1e1e',
+                            header: '#2a2a2a',
+                            hover: '#333333',
+                            accent: '#55ff55',
+                            gold: '#ffaa00',
+                            red: '#ff5555',
+                            blue: '#55ffff',
+                            border: '#3c3c3c'
+                        }
+                    },
+                    fontFamily: {
+                        pixel: ['VT323', 'monospace'],
+                        sans: ['Noto Sans JP', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* マイクラ風レトロUIスタイル */
+        .mc-btn {
+            background: linear-gradient(180deg, #717171 0%, #4a4a4a 100%);
+            border: 2px solid #a0a0a0;
+            border-right-color: #2b2b2b;
+            border-bottom-color: #2b2b2b;
+            box-shadow: inset -2px -2px 0px rgba(0,0,0,0.4), inset 2px 2px 0px rgba(255,255,255,0.3);
+            text-shadow: 1px 1px 0px #000;
+        }
+        .mc-btn:hover {
+            background: linear-gradient(180deg, #828282 0%, #5a5a5a 100%);
+        }
+        .mc-btn:active {
+            border-color: #2b2b2b;
+            border-right-color: #a0a0a0;
+            border-bottom-color: #a0a0a0;
+            box-shadow: inset 2px 2px 0px rgba(0,0,0,0.4);
+        }
+        .mc-btn-primary {
+            background: linear-gradient(180deg, #2e8b57 0%, #1e5a38 100%);
+            border-color: #55ff55;
+            border-right-color: #0d381e;
+            border-bottom-color: #0d381e;
+        }
+        .mc-btn-primary:hover {
+            background: linear-gradient(180deg, #3cb371 0%, #267347 100%);
+        }
+        .mc-btn-gold {
+            background: linear-gradient(180deg, #c79200 0%, #825f00 100%);
+            border-color: #ffaa00;
+            border-right-color: #3b2b00;
+            border-bottom-color: #3b2b00;
+        }
+        .mc-btn-danger {
+            background: linear-gradient(180deg, #8b2e2e 0%, #5a1e1e 100%);
+            border-color: #ff5555;
+            border-right-color: #380d0d;
+            border-bottom-color: #380d0d;
+        }
+        .mc-panel {
+            background-color: #1a1a1a;
+            border: 3px solid #333;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #181818;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #666;
+        }
+        @keyframes highlightMessage {
+            0% { background-color: rgba(255, 170, 0, 0.4); }
+            100% { background-color: transparent; }
+        }
+        .highlight-pin {
+            animation: highlightMessage 2.5s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-mc-bg text-gray-200 font-sans h-screen flex flex-col overflow-hidden select-none">
+
+    <!-- 参加パスワード保護オーバーレイ -->
+    <div id="password-overlay" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+        <div class="bg-mc-panel border-4 border-mc-border rounded-lg max-w-md w-full p-6 shadow-2xl text-center relative">
+            <div class="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center font-pixel text-4xl text-white font-bold border-2 border-green-400 mx-auto mb-4 shadow-lg">
+                A
+            </div>
+            <h2 class="font-pixel text-3xl text-mc-accent mb-1 drop-shadow">AZUMOFUYUKI CHAT</h2>
+            <p class="text-xs text-gray-400 mb-6">マインクラフトサーバー専用チャットへようこそ</p>
+
+            <form id="password-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-mc-gold mb-2 flex items-center justify-center space-x-1">
+                        <i class="fas fa-key"></i>
+                        <span>参加パスワード（合言葉）を入力</span>
+                    </label>
+                    <input type="password" id="join-password-input" placeholder="パスワードを入力..." required class="w-full bg-mc-bg border-2 border-mc-border rounded px-4 py-2.5 text-center text-sm text-white focus:outline-none focus:border-mc-accent tracking-widest">
+                    <p id="password-error-msg" class="text-xs text-mc-red mt-2 hidden font-bold">⚠️ パスワードが正しくありません。</p>
+                </div>
+                <button type="submit" class="mc-btn mc-btn-primary w-full py-2.5 text-white font-bold rounded text-sm flex items-center justify-center space-x-2">
+                    <i class="fas fa-door-open"></i>
+                    <span>チャットに入室する</span>
+                </button>
+            </form>
+            <div class="mt-4 text-[11px] text-gray-500">
+                初期パスワード: <span class="text-gray-300 font-mono">azumo</span> （一度認証すると自動保存）
+            </div>
+        </div>
+    </div>
+
+    <!-- トップヘッダー -->
+    <header class="bg-mc-header border-b-2 border-mc-border px-4 py-2 flex items-center justify-between z-20 shrink-0">
+        <div class="flex items-center space-x-3">
+            <button id="sidebar-toggle" class="md:hidden text-gray-300 hover:text-white p-2" title="メニュー">
+                <i class="fas fa-bars text-lg"></i>
+            </button>
+            <div class="flex items-center space-x-2">
+                <div id="server-badge-icon" class="w-8 h-8 bg-green-600 rounded flex items-center justify-center font-pixel text-xl text-white font-bold border border-green-400">
+                    A
+                </div>
+                <div>
+                    <h1 id="header-server-name" class="font-pixel text-2xl tracking-wide text-mc-accent drop-shadow leading-none">
+                        AZUMOFUYUKI <span class="text-xs font-sans text-gray-400 font-normal">SERVER CHAT</span>
+                    </h1>
+                    <div class="flex items-center space-x-2 text-xs text-gray-400">
+                        <span id="status-indicator" class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        <span id="server-status-display">自動クラウド同期 (azumofuyuki.mcserver.jp:25565)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側アクションバー -->
+        <div class="flex items-center space-x-2">
+            <!-- ソースコード全体コピーボタン -->
+            <button id="copy-full-code-btn" title="アプリ全体のコードをコピー" class="px-2.5 py-1.5 mc-btn text-xs text-white rounded flex items-center space-x-1">
+                <i class="fas fa-code text-mc-accent"></i>
+                <span class="hidden sm:inline">コードコピー</span>
+            </button>
+
+            <!-- サーバー設定ボタン (管理者権限限定機能) -->
+            <button id="server-settings-btn" title="サーバーおよびパスワード設定" class="px-2.5 py-1.5 mc-btn text-xs text-white rounded flex items-center space-x-1">
+                <i class="fas fa-cog text-mc-gold"></i>
+                <span class="hidden sm:inline">サーバー設定</span>
+            </button>
+
+            <!-- 効果音トグル -->
+            <button id="sound-btn" title="効果音切り替え" class="px-2.5 py-1.5 mc-btn text-xs text-white rounded flex items-center space-x-1">
+                <i class="fas fa-volume-up text-mc-gold" id="sound-icon"></i>
+                <span class="hidden sm:inline" id="sound-label">サウンド ON</span>
+            </button>
+
+            <!-- プロフィール編集ボタン -->
+            <button id="profile-btn" class="px-3 py-1.5 mc-btn text-xs text-white rounded flex items-center space-x-2">
+                <img id="header-avatar" src="https://mc-heads.net/avatar/Steve/32" alt="Avatar" class="w-4 h-4 rounded-sm border border-gray-600">
+                <span id="header-username" class="font-bold text-mc-blue">Steve</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ領域 -->
+    <div class="flex flex-1 overflow-hidden relative">
+
+        <!-- サイドバー -->
+        <aside id="sidebar" class="w-64 bg-mc-panel border-r-2 border-mc-border flex flex-col absolute md:relative inset-y-0 left-0 z-30 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out">
+            
+            <!-- サーバー情報カード -->
+            <div class="p-3 border-b border-mc-border bg-black/30">
+                <div class="text-xs font-bold text-gray-400 mb-1 uppercase tracking-wider flex justify-between items-center">
+                    <span>サーバー情報</span>
+                    <i class="fas fa-server text-mc-accent text-xs"></i>
+                </div>
+                <div class="flex items-center justify-between text-xs bg-mc-bg p-2 rounded border border-mc-border">
+                    <span class="text-gray-300">参加プレイヤー:</span>
+                    <span class="font-pixel text-lg text-mc-gold font-bold" id="online-count">0 / 20</span>
+                </div>
+                <div class="mt-2 text-[11px] text-gray-400 flex items-center justify-between">
+                    <span id="sidebar-mc-version">Ver: 1.20.4</span>
+                    <button id="copy-ip-btn" class="text-mc-blue hover:underline flex items-center space-x-1">
+                        <i class="far fa-copy"></i>
+                        <span>IPコピー</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- チャンネル一覧ヘッダー & 管理機能 -->
+            <div class="p-2 border-b border-mc-border bg-black/20">
+                <div class="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider px-1">
+                    <span>チャンネル</span>
+                    <button id="add-channel-btn" title="新規チャンネル作成 (管理者限定)" class="text-mc-gold hover:text-white items-center space-x-1 text-[11px] hidden">
+                        <i class="fas fa-plus"></i>
+                        <span>追加</span>
+                    </button>
+                </div>
+                <nav class="space-y-1 mt-2" id="channel-list">
+                    <!-- JavaScript動的生成 -->
+                </nav>
+            </div>
+
+            <!-- クイック定型文 -->
+            <div class="flex-1 overflow-y-auto p-2">
+                <div class="text-xs font-bold text-gray-400 px-2 py-1 uppercase tracking-wider">クイック定型文</div>
+                <div class="space-y-1 mt-1 px-1" id="quick-phrase-container">
+                    <button class="quick-phrase-btn w-full text-left text-xs bg-mc-bg hover:bg-mc-hover text-gray-300 px-2 py-1.5 rounded border border-mc-border truncate transition">
+                        👋 こんにちは！
+                    </button>
+                    <button class="quick-phrase-btn w-full text-left text-xs bg-mc-bg hover:bg-mc-hover text-gray-300 px-2 py-1.5 rounded border border-mc-border truncate transition">
+                        ⛏️ 資源ワールドに行きませんか？
+                    </button>
+                    <button class="quick-phrase-btn w-full text-left text-xs bg-mc-bg hover:bg-mc-hover text-gray-300 px-2 py-1.5 rounded border border-mc-border truncate transition">
+                        🏰 拠点集合でおねがいします！
+                    </button>
+                    <button class="quick-phrase-btn w-full text-left text-xs bg-mc-bg hover:bg-mc-hover text-gray-300 px-2 py-1.5 rounded border border-mc-border truncate transition">
+                        🏹 ボス戦手伝ってください！
+                    </button>
+                    <button class="quick-phrase-btn w-full text-left text-xs bg-mc-bg hover:bg-mc-hover text-gray-300 px-2 py-1.5 rounded border border-mc-border truncate transition">
+                        💎 ダイヤ発見しました！
+                    </button>
+                </div>
+            </div>
+
+            <!-- クラウド同期・現在の参加メンバー＆権限管理 -->
+            <div class="p-2 border-t border-mc-border bg-black/30 max-h-56 overflow-y-auto">
+                <div class="text-[11px] font-bold text-gray-400 px-1 mb-1 flex items-center justify-between">
+                    <span>参加メンバー (権限管理)</span>
+                    <span id="presence-sync-badge" class="text-[9px] text-mc-accent font-mono">● LIVE</span>
+                </div>
+                <div id="online-users-list" class="space-y-1">
+                    <!-- 動的生成 -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- サイドバー背景オーバーレイ (モバイル用) -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/60 z-20 hidden md:hidden"></div>
+
+        <!-- チャットメインエリア -->
+        <main class="flex-1 flex flex-col bg-mc-bg relative min-w-0">
+            
+            <!-- チャンネルヘッダー -->
+            <div class="bg-mc-panel border-b border-mc-border px-4 py-2 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-2 min-w-0">
+                    <span class="text-mc-gold text-lg font-bold" id="current-channel-icon">#</span>
+                    <h2 class="font-bold text-white text-sm sm:text-base truncate" id="current-channel-name">全体チャット</h2>
+                    <span class="text-xs text-gray-400 hidden sm:inline truncate" id="current-channel-desc">サーバー全体の雑談・連絡用</span>
+                </div>
+                <div class="flex items-center space-x-2 shrink-0">
+                    <!-- チャンネル編集ボタン (管理者限定) -->
+                    <button id="edit-channel-btn" title="現在のチャンネルを編集" class="p-1.5 text-gray-400 hover:text-mc-gold rounded hidden">
+                        <i class="fas fa-pen text-xs"></i>
+                    </button>
+                    <!-- 検索バー -->
+                    <div class="relative">
+                        <input type="text" id="search-input" placeholder="ログを検索..." class="bg-mc-bg border border-mc-border rounded text-xs text-white px-2 py-1 pl-7 w-28 sm:w-40 focus:outline-none focus:border-mc-accent">
+                        <i class="fas fa-search absolute left-2 top-2 text-gray-500 text-xs"></i>
+                    </div>
+                    <!-- クリアボタン -->
+                    <button id="clear-chat-btn" title="表示ログをクリア" class="p-1.5 text-gray-400 hover:text-mc-red rounded">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ピン留め（固定）メッセージバー -->
+            <div id="pinned-bar" class="bg-amber-950/60 border-b border-amber-500/40 px-4 py-1.5 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-2 overflow-hidden flex-1 cursor-pointer" id="pinned-bar-content">
+                    <i class="fas fa-thumbtack text-mc-gold text-xs rotate-45 shrink-0"></i>
+                    <span class="text-xs text-amber-300 font-bold shrink-0">固定メッセージ:</span>
+                    <span id="pinned-bar-text" class="text-xs text-amber-100 truncate italic">固定されたメッセージはありません</span>
+                </div>
+                <button id="pinned-list-toggle" class="text-amber-400 hover:text-white text-xs ml-2 px-2 py-0.5 rounded border border-amber-600/50 hover:bg-amber-800/40 flex items-center space-x-1 shrink-0">
+                    <i class="fas fa-list"></i>
+                    <span class="text-[10px]" id="pinned-count-badge">0件</span>
+                </button>
+            </div>
+
+            <!-- ピン留めメッセージ一覧ポップオーバー -->
+            <div id="pinned-modal" class="hidden absolute top-20 right-4 z-30 w-80 max-w-full bg-mc-panel border-2 border-mc-gold rounded shadow-2xl p-3">
+                <div class="flex items-center justify-between pb-2 mb-2 border-b border-mc-border">
+                    <div class="flex items-center space-x-2 text-mc-gold font-bold text-xs">
+                        <i class="fas fa-thumbtack rotate-45"></i>
+                        <span>固定されたメッセージ一覧</span>
+                    </div>
+                    <button id="close-pinned-modal" class="text-gray-400 hover:text-white text-xs">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="pinned-modal-list" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- 動的挿入 -->
+                </div>
+            </div>
+
+            <!-- 告知アナウンスバナー -->
+            <div id="announcement-banner" class="bg-amber-900/40 border-b border-amber-600/50 px-4 py-2 text-xs text-amber-200 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-2 truncate">
+                    <span class="bg-amber-600 text-black px-1.5 py-0.5 rounded font-bold text-[10px] uppercase shrink-0">告知</span>
+                    <span id="announcement-text" class="truncate">📢 今週末土曜 21:00〜 建築コンテスト開催！賞品はネザライト装備一式！</span>
+                </div>
+                <button onclick="document.getElementById('announcement-banner').style.display='none'" class="text-amber-400 hover:text-white ml-2">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- メッセージ表示エリア -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- メッセージはJSで生成 -->
+            </div>
+
+            <!-- コマンド補完ポップアップ -->
+            <div id="command-suggestions" class="hidden absolute bottom-16 left-4 right-4 bg-mc-panel border-2 border-mc-border rounded shadow-xl p-2 z-10 max-h-40 overflow-y-auto">
+                <div class="text-[10px] text-gray-400 px-2 pb-1 border-b border-gray-700 font-bold">マイクラチャットコマンド</div>
+                <div id="command-list" class="space-y-1 mt-1">
+                    <!-- 動的挿入 -->
+                </div>
+            </div>
+
+            <!-- チャット入力エリア -->
+            <div class="p-3 bg-mc-panel border-t-2 border-mc-border shrink-0">
+                <form id="chat-form" class="flex flex-col space-y-2">
+                    <!-- オプションバー -->
+                    <div class="flex items-center justify-between text-xs text-gray-400 px-1">
+                        <div class="flex items-center space-x-2">
+                            <button type="button" id="stamp-toggle-btn" class="hover:text-mc-gold flex items-center space-x-1">
+                                <i class="far fa-smile"></i>
+                                <span>スタンプ</span>
+                            </button>
+                            <span class="text-gray-600">|</span>
+                            <span class="text-[11px] text-gray-500">`/` 入力でコマンド補完</span>
+                        </div>
+                        <div id="char-count" class="text-[10px] text-gray-500">0 / 200</div>
+                    </div>
+
+                    <!-- スタンプパレット -->
+                    <div id="stamp-palette" class="hidden bg-mc-bg p-2 border border-mc-border rounded grid grid-cols-6 sm:grid-cols-8 gap-2 text-xl">
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">⚔️</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">🛡️</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">💎</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">🍎</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">🧟</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">💥</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">🐷</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">🏠</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">🔥</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">⚡</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">👍</button>
+                        <button type="button" class="stamp-item hover:bg-mc-hover rounded p-1">❤️</button>
+                    </div>
+
+                    <!-- メイン入力欄 -->
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="message-input" placeholder="メッセージまたはコマンド (/help) を入力..." maxlength="200" autocomplete="off" class="flex-1 bg-mc-bg border-2 border-mc-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-mc-accent placeholder-gray-500">
+                        <button type="submit" class="mc-btn mc-btn-primary px-5 py-2 text-white font-bold rounded text-sm shrink-0 flex items-center space-x-1">
+                            <span>送信</span>
+                            <i class="fas fa-paper-plane text-xs"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- プロフィール設定モーダル -->
+    <div id="profile-modal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-mc-panel border-4 border-mc-border rounded-lg max-w-md w-full p-6 shadow-2xl relative">
+            <h3 class="font-pixel text-2xl text-mc-gold mb-4 border-b border-mc-border pb-2">プレイヤー設定</h3>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 mb-1">Minecraft ユーザー名 (MCID)</label>
+                    <div class="flex space-x-2">
+                        <input type="text" id="modal-mcid-input" class="flex-1 bg-mc-bg border border-mc-border rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-mc-accent" placeholder="例: Steve">
+                        <button id="modal-preview-btn" class="mc-btn px-3 py-2 text-xs text-white rounded">アバター更新</button>
+                    </div>
+                    <p class="text-[11px] text-gray-400 mt-1">※ 他のプレイヤーと同じマイクラユーザー名は登録できません</p>
+                </div>
+
+                <!-- アバタープレビュー -->
+                <div class="flex items-center space-x-4 bg-mc-bg p-3 rounded border border-mc-border">
+                    <img id="modal-avatar-preview" src="https://mc-heads.net/avatar/Steve/64" alt="Preview" class="w-12 h-12 rounded border border-gray-600">
+                    <div>
+                        <div class="text-xs font-bold text-gray-400">プレビュー表示:</div>
+                        <div class="text-sm font-bold text-mc-accent" id="modal-name-preview">Steve</div>
+                        <div class="text-[11px] text-mc-gold mt-0.5" id="modal-role-preview">一般メンバー</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="modal-close-btn" class="mc-btn px-4 py-2 text-xs text-gray-300 rounded">キャンセル</button>
+                <button id="modal-save-btn" class="mc-btn mc-btn-primary px-5 py-2 text-xs text-white rounded font-bold">保存して完了</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- チャンネル作成・編集モーダル -->
+    <div id="channel-modal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-mc-panel border-4 border-mc-border rounded-lg max-w-md w-full p-6 shadow-2xl relative">
+            <h3 class="font-pixel text-2xl text-mc-gold mb-4 border-b border-mc-border pb-2" id="channel-modal-title">新規チャンネル作成</h3>
+            
+            <div class="space-y-3">
+                <input type="hidden" id="channel-edit-id">
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 mb-1">チャンネル名</label>
+                    <input type="text" id="channel-name-input" placeholder="例: イベント連絡" class="w-full bg-mc-bg border border-mc-border rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-mc-accent">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 mb-1">アイコン (絵文字または1文字)</label>
+                    <input type="text" id="channel-icon-input" placeholder="#" class="w-full bg-mc-bg border border-mc-border rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-mc-accent">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-300 mb-1">説明・概要</label>
+                    <input type="text" id="channel-desc-input" placeholder="例: 週末イベント用のチャンネルです" class="w-full bg-mc-bg border border-mc-border rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-mc-accent">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-between items-center">
+                <button id="channel-delete-btn" class="mc-btn mc-btn-danger px-3 py-1.5 text-xs text-white rounded hidden">
+                    <i class="fas fa-trash-alt mr-1"></i> 削除
+                </button>
+                <div class="flex space-x-2 ml-auto">
+                    <button id="channel-modal-close-btn" class="mc-btn px-4 py-2 text-xs text-gray-300 rounded">キャンセル</button>
+                    <button id="channel-modal-save-btn" class="mc-btn mc-btn-primary px-5 py-2 text-xs text-white rounded font-bold">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- サーバー情報 & パスワード設定モーダル (管理者権限用) -->
+    <div id="server-settings-modal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-mc-panel border-4 border-mc-border rounded-lg max-w-xl w-full p-6 shadow-2xl relative">
+            <div class="flex items-center justify-between mb-4 border-b border-mc-border pb-2">
+                <h3 class="font-pixel text-2xl text-mc-gold flex items-center space-x-2">
+                    <i class="fas fa-cog"></i>
+                    <span>サーバー情報 & パスワード設定 (管理者限定)</span>
+                </h3>
+            </div>
+            
+            <div class="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+                <!-- 参加パスワード設定 -->
+                <div class="bg-amber-950/40 p-3 rounded border border-amber-600/50 space-y-2">
+                    <div class="text-xs font-bold text-mc-gold uppercase tracking-wider flex items-center space-x-1">
+                        <i class="fas fa-lock"></i>
+                        <span>1. チャット参加パスワード (合言葉)</span>
+                    </div>
+                    <p class="text-[11px] text-gray-300">
+                        チャットに参加するためのパスワードを変更できます。変更内容はクラウド同期され、全員に即座に適用されます。
+                    </p>
+                    <div>
+                        <input type="text" id="setting-join-password" class="w-full bg-mc-bg border border-mc-border rounded px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-mc-accent" placeholder="azumo">
+                    </div>
+                </div>
+
+                <!-- サーバー設定セクション -->
+                <div class="bg-mc-bg p-3 rounded border border-mc-border space-y-3">
+                    <div class="text-xs font-bold text-mc-accent uppercase tracking-wider flex items-center space-x-1">
+                        <i class="fas fa-server"></i>
+                        <span>2. マインクラフトサーバー情報</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-300 mb-1">サーバー表示名</label>
+                        <input type="text" id="setting-server-name" class="w-full bg-mc-panel border border-mc-border rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-mc-accent" placeholder="AZUMOFUYUKI">
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-gray-300 mb-1">サーバー IP / アドレス</label>
+                            <input type="text" id="setting-server-ip" class="w-full bg-mc-panel border border-mc-border rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-mc-accent" placeholder="azumofuyuki.mcserver.jp">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-300 mb-1">ポート</label>
+                            <input type="number" id="setting-server-port" class="w-full bg-mc-panel border border-mc-border rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-mc-accent" placeholder="25565">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-300 mb-1">Minecraft バージョン</label>
+                            <input type="text" id="setting-server-version" class="w-full bg-mc-panel border border-mc-border rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-mc-accent" placeholder="1.20.4">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-300 mb-1">最大接続人数</label>
+                            <input type="number" id="setting-max-players" class="w-full bg-mc-panel border border-mc-border rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-mc-accent" placeholder="20">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-300 mb-1">告知アナウンスメッセージ</label>
+                        <textarea id="setting-announcement" rows="2" class="w-full bg-mc-panel border border-mc-border rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:border-mc-accent" placeholder="告知テキスト..."></textarea>
+                    </div>
+                </div>
+
+                <!-- データ管理セクション -->
+                <div class="bg-mc-bg p-3 rounded border border-mc-border space-y-2">
+                    <div class="text-xs font-bold text-gray-300 uppercase tracking-wider">3. データバックアップ & 管理</div>
+                    <div class="flex space-x-2">
+                        <button id="export-data-btn" class="mc-btn px-3 py-1.5 text-xs text-white rounded flex-1">
+                            <i class="fas fa-download mr-1"></i> チャットログ保存 (JSON)
+                        </button>
+                        <button id="import-data-btn" class="mc-btn px-3 py-1.5 text-xs text-white rounded flex-1">
+                            <i class="fas fa-upload mr-1"></i> ログ復元
+                        </button>
+                        <input type="file" id="import-file-input" accept=".json" class="hidden">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="server-modal-close-btn" class="mc-btn px-4 py-2 text-xs text-gray-300 rounded">キャンセル</button>
+                <button id="server-modal-save-btn" class="mc-btn mc-btn-gold px-5 py-2 text-xs text-white rounded font-bold">保存してクラウドへ適用</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (v11.6.1) CDN -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, doc, setDoc, updateDoc, deleteDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // ユーザー固有永続ID（端末ごとに一元化されるアカウントキー）
+        let userKey = localStorage.getItem('azumo_user_key');
+        if (!userKey) {
+            userKey = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            localStorage.setItem('azumo_user_key', userKey);
+        }
+
+        // 特別な管理者指定MCID
+        const SPECIAL_ADMIN_MCID = "AzumoAurora3032";
+
+        // =========================================================
+        // アプリケーション状態管理
+        // =========================================================
+        const state = {
+            currentUser: {
+                userKey: userKey,
+                username: localStorage.getItem('azumo_mcid') || 'Steve',
+                role: (localStorage.getItem('azumo_mcid') || '').toLowerCase() === SPECIAL_ADMIN_MCID.toLowerCase() ? 'admin' : 'member',
+                avatarUrl: `https://mc-heads.net/avatar/${localStorage.getItem('azumo_mcid') || 'Steve'}/64`
+            },
+            serverConfig: JSON.parse(localStorage.getItem('azumo_server_config')) || {
+                name: 'AZUMOFUYUKI',
+                ip: 'azumofuyuki.mcserver.jp',
+                port: 25565,
+                version: '1.20.4',
+                maxPlayers: 20,
+                announcement: '📢 同名MCID重複登録防止＆特定管理者(AzumoAurora3032)自動認識を適用しました！',
+                joinPassword: 'azumo'
+            },
+            currentChannel: 'general',
+            soundEnabled: true,
+            authenticated: false,
+            messages: JSON.parse(localStorage.getItem('azumo_local_messages')) || [],
+            channels: [
+                { id: 'general', name: '全体チャット', icon: '#', desc: 'サーバー全体の雑談・連絡用' },
+                { id: 'notice', name: '運営お知らせ', icon: '📢', desc: '公式ルールやイベント告知' },
+                { id: 'build', name: '建築お披露目', icon: '🏰', desc: '自慢の建築写真やプロジェクト紹介' },
+                { id: 'trade', name: '取引・募集', icon: '⚖️', desc: 'アイテムの交換・マルチ協力募集' }
+            ],
+            commands: [
+                { cmd: '/help', desc: '利用可能なチャットコマンドを表示します' },
+                { cmd: '/clear', desc: '画面上のチャット履歴表示をクリアします' },
+                { cmd: '/roll 100', desc: '指定した数値（1〜100等）でダイスを振ります' },
+                { cmd: '/shout メッセージ', desc: 'サーバー全域に強調アナウンスを流します' },
+                { cmd: '/me アクション', desc: '自分の行動テキストを装飾送信します' },
+                { cmd: '/time', desc: 'マインクラフト内の現在時刻（風）を表示します' }
+            ],
+            usersMap: new Map() // userKey -> { userKey, username, role, avatarUrl, lastActive }
+        };
+
+        // BroadcastChannel P2P マルチタブ同期
+        const broadcastChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('azumofuyuki_p2p_channel') : null;
+
+        if (broadcastChannel) {
+            broadcastChannel.onmessage = (event) => {
+                const { type, data } = event.data;
+                if (type === 'NEW_MESSAGE') {
+                    if (!state.messages.some(m => m.id === data.id)) {
+                        state.messages.push(data);
+                        saveLocalMessages();
+                        renderMessages();
+                        renderPinnedBar();
+                        playSound('message');
+                    }
+                } else if (type === 'UPDATE_PIN') {
+                    const msg = state.messages.find(m => m.id === data.id);
+                    if (msg) {
+                        msg.isPinned = data.isPinned;
+                        saveLocalMessages();
+                        renderMessages();
+                        renderPinnedBar();
+                    }
+                } else if (type === 'UPDATE_CONFIG') {
+                    state.serverConfig = { ...state.serverConfig, ...data };
+                    applyServerConfigToUI();
+                }
+            };
+        }
+
+        // 重複マイクラユーザー名（MCID）チェック関数
+        function isUsernameTaken(targetUsername, selfUserKey) {
+            const cleanTarget = targetUsername.trim().toLowerCase();
+            for (const [key, u] of state.usersMap.entries()) {
+                if (key !== selfUserKey && u.username && u.username.trim().toLowerCase() === cleanTarget) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // =========================================================
+        // クラウド接続エンジン
+        // =========================================================
+        let db = null;
+        let auth = null;
+        let appId = typeof __app_id !== 'undefined' ? __app_id : 'azumofuyuki-chat';
+        let firebaseConnected = false;
+        let presenceTimer = null;
+
+        async function initFirebaseAuto() {
+            try {
+                const firebaseConfig = typeof __firebase_config !== 'undefined' 
+                    ? JSON.parse(__firebase_config)
+                    : {
+                        projectId: "azumofuyuki-chat",
+                        apiKey: "dummyKeyForAutoSync"
+                    };
+
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        firebaseConnected = true;
+                        subscribeUsers();
+                        subscribeChannels();
+                        subscribeMessages();
+                        subscribeServerConfig();
+                        checkAuthAndStartPresence();
+                        updateStatusIndicator(true);
+                    }
+                });
+            } catch (e) {
+                console.warn("クラウド自動接続フォールバック:", e);
+                if (state.messages.length === 0) loadMockInitialMessages();
+                updateStatusIndicator(false);
+            }
+        }
+
+        // 全ユーザープロフィールのクラウドリアルタイム監視（`azumofuyuki_users` 一元管理）
+        function subscribeUsers() {
+            if (!db || !auth.currentUser) return;
+            const usersCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_users');
+
+            onSnapshot(usersCollectionRef, (snapshot) => {
+                const newMap = new Map();
+                snapshot.forEach((docSnap) => {
+                    const uData = docSnap.data();
+                    newMap.set(docSnap.id, uData);
+
+                    // AzumoAurora3032の場合、即座に管理者ロールを付与
+                    if (uData.username && uData.username.trim().toLowerCase() === SPECIAL_ADMIN_MCID.toLowerCase()) {
+                        uData.role = 'admin';
+                    }
+
+                    if (docSnap.id === userKey) {
+                        state.currentUser.role = uData.role || 'member';
+                        document.getElementById('modal-role-preview').textContent = getRoleName(state.currentUser.role);
+                        renderChannels();
+                    }
+                });
+                state.usersMap = newMap;
+                renderOnlineUsers();
+                renderMessages();
+            });
+        }
+
+        // プロフィール／ロールのクラウド保存＆更新
+        async function saveUserProfileToCloud(updatedRole = null) {
+            // MCIDが「AzumoAurora3032」の場合は自動的に管理者(admin)に設定
+            let roleToSave = updatedRole || state.currentUser.role || 'member';
+            if (state.currentUser.username.trim().toLowerCase() === SPECIAL_ADMIN_MCID.toLowerCase()) {
+                roleToSave = 'admin';
+            }
+
+            const userData = {
+                userKey: userKey,
+                username: state.currentUser.username,
+                role: roleToSave,
+                avatarUrl: state.currentUser.avatarUrl,
+                lastActive: Date.now()
+            };
+
+            state.usersMap.set(userKey, userData);
+            state.currentUser.role = roleToSave;
+
+            if (firebaseConnected && db && auth.currentUser) {
+                try {
+                    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_users', userKey);
+                    await setDoc(userDocRef, userData, { merge: true });
+                } catch (e) {
+                    console.error("User Profile Update Error:", e);
+                }
+            }
+            renderOnlineUsers();
+            renderMessages();
+            renderChannels();
+        }
+
+        async function setUserRole(targetUserKey, role) {
+            const targetUser = state.usersMap.get(targetUserKey) || {
+                userKey: targetUserKey,
+                username: 'Steve',
+                avatarUrl: 'https://mc-heads.net/avatar/Steve/64'
+            };
+
+            // 対象がAzumoAurora3032の場合は常にAdminを維持
+            if (targetUser.username && targetUser.username.trim().toLowerCase() === SPECIAL_ADMIN_MCID.toLowerCase()) {
+                role = 'admin';
+            }
+
+            targetUser.role = role;
+            targetUser.lastActive = Date.now();
+            state.usersMap.set(targetUserKey, targetUser);
+
+            if (targetUserKey === userKey) {
+                state.currentUser.role = role;
+                renderChannels();
+            }
+
+            if (firebaseConnected && db && auth.currentUser) {
+                try {
+                    const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_users', targetUserKey);
+                    await setDoc(userDocRef, { userKey: targetUserKey, role: role, updatedAt: Date.now() }, { merge: true });
+                } catch (e) {
+                    console.error("Role Update Error:", e);
+                }
+            }
+            renderOnlineUsers();
+            renderMessages();
+        }
+
+        // チャンネルのクラウド監視
+        function subscribeChannels() {
+            if (!db || !auth.currentUser) return;
+            const channelsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_channels');
+
+            onSnapshot(channelsCollectionRef, (snapshot) => {
+                if (!snapshot.empty) {
+                    const loadedChannels = [];
+                    snapshot.forEach((docSnap) => {
+                        loadedChannels.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    loadedChannels.sort((a, b) => (a.order || 0) - (b.order || 0));
+                    state.channels = loadedChannels;
+                    renderChannels();
+                } else {
+                    state.channels.forEach((ch, index) => {
+                        const chDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_channels', ch.id);
+                        setDoc(chDocRef, { ...ch, order: index });
+                    });
+                }
+            });
+        }
+
+        async function saveChannelToCloud(channelObj) {
+            if (state.currentUser.role !== 'admin') {
+                alert("⚠️ チャンネル作成・編集には管理者権限が必要です。");
+                return;
+            }
+
+            const index = state.channels.findIndex(c => c.id === channelObj.id);
+            if (index !== -1) {
+                state.channels[index] = channelObj;
+            } else {
+                state.channels.push(channelObj);
+            }
+            renderChannels();
+
+            if (firebaseConnected && db && auth.currentUser) {
+                try {
+                    const chDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_channels', channelObj.id);
+                    await setDoc(chDocRef, { ...channelObj, order: index !== -1 ? index : state.channels.length }, { merge: true });
+                } catch (e) {
+                    console.error("Channel Save Error:", e);
+                }
+            }
+        }
+
+        async function deleteChannelFromCloud(channelId) {
+            if (state.currentUser.role !== 'admin') {
+                alert("⚠️ チャンネル削除には管理者権限が必要です。");
+                return;
+            }
+
+            state.channels = state.channels.filter(c => c.id !== channelId);
+            if (state.currentChannel === channelId) {
+                setChannel('general');
+            } else {
+                renderChannels();
+            }
+
+            if (firebaseConnected && db && auth.currentUser) {
+                try {
+                    const chDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_channels', channelId);
+                    await deleteDoc(chDocRef);
+                } catch (e) {
+                    console.error("Channel Delete Error:", e);
+                }
+            }
+        }
+
+        function updateStatusIndicator(online) {
+            const ind = document.getElementById('status-indicator');
+            const txt = document.getElementById('server-status-display');
+            if (online) {
+                ind.className = 'inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse';
+                txt.textContent = `全自動クラウド同期 (${state.serverConfig.ip}:${state.serverConfig.port})`;
+            } else {
+                ind.className = 'inline-block w-2 h-2 rounded-full bg-amber-500';
+                txt.textContent = `ローカル動作中 (${state.serverConfig.ip}:${state.serverConfig.port})`;
+            }
+        }
+
+        function saveLocalMessages() {
+            localStorage.setItem('azumo_local_messages', JSON.stringify(state.messages.slice(-100)));
+        }
+
+        // パスワード自動スキップ判定
+        function checkSavedPassword() {
+            const savedPass = localStorage.getItem('azumo_authenticated_pass');
+            const targetPass = state.serverConfig.joinPassword || 'azumo';
+
+            if (savedPass && savedPass === targetPass) {
+                state.authenticated = true;
+                document.getElementById('password-overlay').classList.add('hidden');
+                checkAuthAndStartPresence();
+            } else {
+                state.authenticated = false;
+                document.getElementById('password-overlay').classList.remove('hidden');
+            }
+        }
+
+        function checkAuthAndStartPresence() {
+            if (state.authenticated) {
+                saveUserProfileToCloud();
+                if (presenceTimer) clearInterval(presenceTimer);
+                presenceTimer = setInterval(() => saveUserProfileToCloud(), 15000);
+            }
+        }
+
+        // Web Audio API レトロ効果音
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playSound(type) {
+            if (!state.soundEnabled) return;
+            try {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'click') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.05);
+                } else if (type === 'message') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'pin') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.08);
+                    osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.16);
+                    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                } else if (type === 'command') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.12);
+                }
+            } catch (err) {
+                console.error("Audio Error:", err);
+            }
+        }
+
+        // データリアルタイム監視 (Firestore)
+        function subscribeMessages() {
+            if (!db || !auth.currentUser) return;
+
+            const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_messages');
+            
+            onSnapshot(messagesRef, (snapshot) => {
+                const fetched = [];
+                snapshot.forEach((doc) => {
+                    fetched.push({ id: doc.id, ...doc.data() });
+                });
+                
+                fetched.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+                const isNewMsg = fetched.length > state.messages.length;
+                state.messages = fetched;
+                saveLocalMessages();
+                renderMessages();
+                renderPinnedBar();
+
+                if (isNewMsg) {
+                    playSound('message');
+                }
+            }, (error) => {
+                console.error("Messages Listen Error:", error);
+            });
+        }
+
+        function subscribeServerConfig() {
+            if (!db || !auth.currentUser) return;
+
+            const configDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_config', 'server_info');
+
+            onSnapshot(configDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    state.serverConfig = { ...state.serverConfig, ...docSnap.data() };
+                    localStorage.setItem('azumo_server_config', JSON.stringify(state.serverConfig));
+                    applyServerConfigToUI();
+                    checkSavedPassword();
+                } else {
+                    setDoc(configDocRef, state.serverConfig);
+                }
+            }, (error) => {
+                console.error("Config Listen Error:", error);
+            });
+        }
+
+        function applyServerConfigToUI() {
+            const conf = state.serverConfig;
+            document.getElementById('header-server-name').innerHTML = `${escapeHtml(conf.name)} <span class="text-xs font-sans text-gray-400 font-normal">SERVER CHAT</span>`;
+            document.getElementById('server-status-display').textContent = `${firebaseConnected ? '全自動クラウド同期' : 'ローカル'} (${conf.ip}:${conf.port})`;
+            document.getElementById('sidebar-mc-version').textContent = `Ver: ${conf.version}`;
+            document.getElementById('announcement-text').textContent = conf.announcement;
+            renderOnlineUsers();
+        }
+
+        async function saveServerConfig(newConfig) {
+            if (state.currentUser.role !== 'admin') {
+                alert("⚠️ サーバー設定変更には管理者権限が必要です。");
+                return;
+            }
+
+            state.serverConfig = { ...state.serverConfig, ...newConfig };
+            localStorage.setItem('azumo_server_config', JSON.stringify(state.serverConfig));
+            applyServerConfigToUI();
+
+            if (broadcastChannel) {
+                broadcastChannel.postMessage({ type: 'UPDATE_CONFIG', data: state.serverConfig });
+            }
+
+            if (firebaseConnected && db && auth.currentUser) {
+                try {
+                    const configDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_config', 'server_info');
+                    await setDoc(configDocRef, state.serverConfig, { merge: true });
+                } catch (e) {
+                    console.error("設定保存失敗:", e);
+                }
+            }
+        }
+
+        function loadMockInitialMessages() {
+            if (state.messages.length > 0) return;
+            state.messages = [
+                {
+                    id: '1',
+                    channel: 'general',
+                    username: 'AzumoFuyuki',
+                    role: 'admin',
+                    avatarUrl: 'https://mc-heads.net/avatar/AzumoFuyuki/64',
+                    content: 'Azumofuyuki サーバー公式チャットへようこそ！マナーを守って楽しく交流しましょう。',
+                    isPinned: true,
+                    createdAt: Date.now() - 3600000,
+                    type: 'normal'
+                }
+            ];
+            saveLocalMessages();
+            renderMessages();
+            renderPinnedBar();
+        }
+
+        async function sendMessage(content, type = 'normal') {
+            if (!content.trim() || !state.authenticated) return;
+
+            const messageObj = {
+                id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                channel: state.currentChannel,
+                userKey: userKey,
+                username: state.currentUser.username,
+                role: state.currentUser.role,
+                avatarUrl: `https://mc-heads.net/avatar/${state.currentUser.username}/64`,
+                content: content.trim(),
+                isPinned: false,
+                type: type,
+                createdAt: Date.now()
+            };
+
+            if (firebaseConnected && db && auth.currentUser) {
+                try {
+                    const messagesRef = collection(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_messages');
+                    await addDoc(messagesRef, messageObj);
+                } catch (e) {
+                    console.error("送信失敗フォールバック:", e);
+                    appendLocalAndBroadcast(messageObj);
+                }
+            } else {
+                appendLocalAndBroadcast(messageObj);
+            }
+        }
+
+        function appendLocalAndBroadcast(msgObj) {
+            state.messages.push(msgObj);
+            saveLocalMessages();
+            renderMessages();
+            renderPinnedBar();
+            playSound('message');
+
+            if (broadcastChannel) {
+                broadcastChannel.postMessage({ type: 'NEW_MESSAGE', data: msgObj });
+            }
+        }
+
+        async function togglePinMessage(msgId) {
+            if (!state.authenticated) return;
+            const targetMsg = state.messages.find(m => m.id === msgId);
+            if (!targetMsg) return;
+
+            const newPinnedStatus = !targetMsg.isPinned;
+            targetMsg.isPinned = newPinnedStatus;
+
+            saveLocalMessages();
+            renderMessages();
+            renderPinnedBar();
+            playSound('pin');
+
+            if (broadcastChannel) {
+                broadcastChannel.postMessage({ type: 'UPDATE_PIN', data: { id: msgId, isPinned: newPinnedStatus } });
+            }
+
+            if (firebaseConnected && db && auth.currentUser) {
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'azumofuyuki_messages', msgId);
+                    await updateDoc(docRef, { isPinned: newPinnedStatus });
+                } catch (e) {
+                    console.error("ピン更新失敗:", e);
+                }
+            }
+        }
+
+        // 全ソースコードをクリップボードにコピーする関数
+        function copyFullApplicationCode() {
+            const fullHtml = document.documentElement.outerHTML;
+            const codeToCopy = "<!DOCTYPE html>\n<html lang=\"ja\">\n" + fullHtml + "\n</html>";
+
+            const dummy = document.createElement('textarea');
+            dummy.value = codeToCopy;
+            document.body.appendChild(dummy);
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+
+            state.messages.push({
+                id: 'sys_' + Date.now(),
+                channel: state.currentChannel,
+                username: 'システム',
+                role: 'admin',
+                avatarUrl: 'https://mc-heads.net/avatar/MHF_Chest/64',
+                content: '📄 アプリ全体のHTML完全コードをクリップボードにコピーしました！GitHub Pagesの index.html に貼り付けて使用できます。',
+                type: 'system',
+                createdAt: Date.now()
+            });
+            renderMessages();
+            playSound('click');
+        }
+
+        // =========================================================
+        // UI レンダリング関数群
+        // =========================================================
+        function renderChannels() {
+            const container = document.getElementById('channel-list');
+            const isAdmin = state.currentUser.role === 'admin';
+
+            container.innerHTML = state.channels.map(ch => {
+                const isActive = ch.id === state.currentChannel;
+                return `
+                    <div class="flex items-center group rounded ${isActive ? 'bg-mc-accent/20 border border-mc-accent/50' : 'hover:bg-mc-hover'} px-2 py-1 transition">
+                        <button data-channel="${ch.id}" class="channel-btn flex-1 flex items-center space-x-2 text-xs text-left truncate py-1 ${isActive ? 'text-mc-accent font-bold' : 'text-gray-300'}">
+                            <span class="text-sm">${ch.icon || '#'}</span>
+                            <span class="truncate">${ch.name}</span>
+                        </button>
+                        ${isAdmin ? `
+                            <button data-edit-ch-id="${ch.id}" class="edit-ch-btn opacity-0 group-hover:opacity-100 text-gray-400 hover:text-mc-gold text-[11px] p-1 transition" title="編集">
+                                <i class="fas fa-cog"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.channel-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const targetCh = e.currentTarget.dataset.channel;
+                    setChannel(targetCh);
+                    playSound('click');
+                    closeSidebar();
+                });
+            });
+
+            document.querySelectorAll('.edit-ch-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const chId = e.currentTarget.dataset.editChId;
+                    openChannelModal(chId);
+                    playSound('click');
+                });
+            });
+
+            document.getElementById('add-channel-btn').style.display = isAdmin ? 'flex' : 'none';
+            document.getElementById('edit-channel-btn').style.display = isAdmin ? 'block' : 'none';
+        }
+
+        function setChannel(channelId) {
+            state.currentChannel = channelId;
+            const chInfo = state.channels.find(c => c.id === channelId) || { name: '全体チャット', icon: '#', desc: '' };
+            document.getElementById('current-channel-name').textContent = chInfo.name;
+            document.getElementById('current-channel-icon').textContent = chInfo.icon || '#';
+            document.getElementById('current-channel-desc').textContent = chInfo.desc || '';
+
+            renderChannels();
+            renderMessages();
+            renderPinnedBar();
+        }
+
+        // オンラインユーザー一覧＆権限管理者変更UI
+        function renderOnlineUsers() {
+            const container = document.getElementById('online-users-list');
+            const now = Date.now();
+            const isAdmin = state.currentUser.role === 'admin';
+
+            const activeUsers = Array.from(state.usersMap.values()).filter(u => u.lastActive && (now - u.lastActive < 60000));
+
+            if (activeUsers.length === 0) {
+                container.innerHTML = `<div class="text-[11px] text-gray-500 py-1 px-1 italic">メンバー接続中...</div>`;
+            } else {
+                container.innerHTML = activeUsers.map(u => {
+                    const uRole = u.role || 'member';
+                    const isSelf = u.userKey === userKey;
+                    return `
+                        <div class="flex items-center justify-between text-xs py-1 px-1 rounded hover:bg-mc-hover transition group">
+                            <div class="flex items-center space-x-2 truncate flex-1 min-w-0">
+                                <img src="https://mc-heads.net/avatar/${u.username}/32" class="w-4 h-4 rounded-sm border border-gray-600 shrink-0">
+                                <span class="${getRoleColorClass(uRole)} font-bold truncate">${escapeHtml(u.username)} ${isSelf ? '<span class="text-[9px] text-gray-400 font-normal">(自分)</span>' : ''}</span>
+                            </div>
+                            
+                            <div class="flex items-center space-x-1 shrink-0">
+                                ${isAdmin ? `
+                                    <select data-role-user-key="${u.userKey}" class="admin-role-select bg-mc-bg border border-mc-border text-[10px] text-gray-200 rounded px-1 py-0.5 focus:outline-none focus:border-mc-accent">
+                                        <option value="member" ${uRole === 'member' ? 'selected' : ''}>一般</option>
+                                        <option value="builder" ${uRole === 'builder' ? 'selected' : ''}>建築家</option>
+                                        <option value="vip" ${uRole === 'vip' ? 'selected' : ''}>VIP</option>
+                                        <option value="admin" ${uRole === 'admin' ? 'selected' : ''}>管理者</option>
+                                    </select>
+                                ` : `
+                                    <span class="text-[9px] px-1 py-0.2 rounded border border-gray-700 text-gray-400 font-pixel">${getRoleName(uRole)}</span>
+                                `}
+                                <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.querySelectorAll('.admin-role-select').forEach(sel => {
+                    sel.addEventListener('change', (e) => {
+                        const targetKey = e.currentTarget.dataset.roleUserKey;
+                        const newRole = e.currentTarget.value;
+                        setUserRole(targetKey, newRole);
+                        playSound('click');
+                    });
+                });
+            }
+
+            document.getElementById('online-count').textContent = `${activeUsers.length} / ${state.serverConfig.maxPlayers}`;
+        }
+
+        function getRoleBadge(role) {
+            switch (role) {
+                case 'admin':
+                    return `<span class="bg-red-900/80 text-red-300 border border-red-500 text-[10px] px-1.5 py-0.2 rounded font-pixel">運営</span>`;
+                case 'builder':
+                    return `<span class="bg-blue-900/80 text-blue-300 border border-blue-500 text-[10px] px-1.5 py-0.2 rounded font-pixel">建築家</span>`;
+                case 'vip':
+                    return `<span class="bg-amber-900/80 text-amber-300 border border-amber-500 text-[10px] px-1.5 py-0.2 rounded font-pixel">VIP</span>`;
+                default:
+                    return `<span class="bg-gray-800 text-gray-300 border border-gray-600 text-[10px] px-1.5 py-0.2 rounded font-pixel">メンバー</span>`;
+            }
+        }
+
+        function getRoleName(role) {
+            switch (role) {
+                case 'admin': return '管理者';
+                case 'builder': return '建築家';
+                case 'vip': return 'VIP';
+                default: return 'メンバー';
+            }
+        }
+
+        function getRoleColorClass(role) {
+            switch (role) {
+                case 'admin': return 'text-mc-red';
+                case 'builder': return 'text-mc-blue';
+                case 'vip': return 'text-mc-gold';
+                default: return 'text-gray-200';
+            }
+        }
+
+        function renderPinnedBar() {
+            const channelPinned = state.messages.filter(m => m.channel === state.currentChannel && m.isPinned);
+            const textEl = document.getElementById('pinned-bar-text');
+            const badgeEl = document.getElementById('pinned-count-badge');
+            
+            badgeEl.textContent = `${channelPinned.length}件`;
+
+            if (channelPinned.length > 0) {
+                const latestPin = channelPinned[channelPinned.length - 1];
+                const uProf = latestPin.userKey ? state.usersMap.get(latestPin.userKey) : null;
+                const pName = uProf ? uProf.username : latestPin.username;
+                textEl.textContent = `${pName}: ${latestPin.content}`;
+                textEl.classList.remove('italic');
+            } else {
+                textEl.textContent = '固定されたメッセージはありません';
+                textEl.classList.add('italic');
+            }
+
+            const modalList = document.getElementById('pinned-modal-list');
+            if (channelPinned.length === 0) {
+                modalList.innerHTML = `<div class="text-xs text-gray-400 p-2 text-center">このチャンネルに固定メッセージはありません</div>`;
+            } else {
+                modalList.innerHTML = channelPinned.map(p => {
+                    const uProf = p.userKey ? state.usersMap.get(p.userKey) : null;
+                    const pName = uProf ? uProf.username : p.username;
+                    return `
+                        <div class="bg-mc-bg p-2 rounded border border-mc-border text-xs flex flex-col space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-mc-accent">${escapeHtml(pName)}</span>
+                                <button data-unpin-id="${p.id}" class="unpin-btn text-mc-gold hover:text-white text-[10px]">
+                                    <i class="fas fa-thumbtack"></i> 固定解除
+                                </button>
+                            </div>
+                            <div class="text-gray-200 cursor-pointer pin-jump-item" data-msg-id="${p.id}">${escapeHtml(p.content)}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                modalList.querySelectorAll('.unpin-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = e.currentTarget.dataset.unpinId;
+                        togglePinMessage(id);
+                    });
+                });
+
+                modalList.querySelectorAll('.pin-jump-item').forEach(el => {
+                    el.addEventListener('click', (e) => {
+                        const id = e.currentTarget.dataset.msgId;
+                        const msgEl = document.getElementById(`msg-${id}`);
+                        if (msgEl) {
+                            msgEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            msgEl.classList.add('highlight-pin');
+                            setTimeout(() => msgEl.classList.remove('highlight-pin'), 2500);
+                        }
+                        document.getElementById('pinned-modal').classList.add('hidden');
+                    });
+                });
+            }
+        }
+
+        // メッセージ描画
+        function renderMessages() {
+            const container = document.getElementById('chat-messages');
+            const searchQuery = document.getElementById('search-input').value.toLowerCase();
+
+            const filtered = state.messages.filter(m => {
+                const matchChannel = (m.channel === state.currentChannel);
+                const uProf = m.userKey ? state.usersMap.get(m.userKey) : null;
+                const mName = uProf ? uProf.username : m.username;
+
+                const matchSearch = !searchQuery || 
+                    m.content.toLowerCase().includes(searchQuery) || 
+                    mName.toLowerCase().includes(searchQuery);
+                return matchChannel && matchSearch;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-gray-500 space-y-2 py-12">
+                        <i class="fas fa-comments text-4xl mb-2 opacity-40"></i>
+                        <p class="text-xs">メッセージがありません。</p>
+                        <p class="text-[11px] text-gray-600">メッセージを入力して会話を始めましょう！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(msg => {
+                const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const pinnedClass = msg.isPinned ? 'border-l-4 border-mc-gold bg-amber-950/20' : '';
+                
+                const uProf = msg.userKey ? state.usersMap.get(msg.userKey) : null;
+                const displayUsername = uProf ? uProf.username : msg.username;
+                const displayRole = uProf ? (uProf.role || msg.role) : msg.role;
+                const displayAvatar = uProf ? uProf.avatarUrl : msg.avatarUrl;
+
+                if (msg.type === 'shout') {
+                    return `
+                        <div id="msg-${msg.id}" class="bg-red-950/40 border-2 border-red-600 p-3 rounded-lg shadow flex items-start space-x-3 my-2 ${pinnedClass}">
+                            <img src="${displayAvatar}" class="w-8 h-8 rounded border border-red-500 shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-bold text-mc-red text-sm">${escapeHtml(displayUsername)}</span>
+                                        <span class="bg-red-600 text-white text-[10px] px-1 rounded font-bold">全域シャウト</span>
+                                        <span class="text-[10px] text-gray-400">${timeStr}</span>
+                                    </div>
+                                    <button data-pin-id="${msg.id}" class="pin-toggle-btn text-gray-400 hover:text-mc-gold p-1" title="メッセージを固定">
+                                        <i class="fas fa-thumbtack ${msg.isPinned ? 'text-mc-gold rotate-45' : ''}"></i>
+                                    </button>
+                                </div>
+                                <div class="text-sm font-bold text-red-200 mt-1 tracking-wide">${escapeHtml(msg.content)}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (msg.type === 'system') {
+                    return `
+                        <div id="msg-${msg.id}" class="bg-mc-panel/80 border border-mc-gold/40 p-2 rounded text-xs text-mc-gold flex items-center space-x-2 ${pinnedClass}">
+                            <i class="fas fa-info-circle"></i>
+                            <span class="flex-1">${escapeHtml(msg.content)}</span>
+                            <span class="text-[10px] text-gray-500">${timeStr}</span>
+                        </div>
+                    `;
+                }
+
+                if (msg.type === 'action') {
+                    return `
+                        <div id="msg-${msg.id}" class="text-xs text-mc-blue italic px-2 py-1 flex items-center justify-between ${pinnedClass}">
+                            <div>* <span class="font-bold">${escapeHtml(displayUsername)}</span> ${escapeHtml(msg.content)}</div>
+                            <button data-pin-id="${msg.id}" class="pin-toggle-btn text-gray-500 hover:text-mc-gold p-1">
+                                <i class="fas fa-thumbtack ${msg.isPinned ? 'text-mc-gold rotate-45' : ''}"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div id="msg-${msg.id}" class="flex items-start space-x-3 group hover:bg-black/20 p-1.5 rounded transition ${pinnedClass}">
+                        <img src="${displayAvatar}" alt="${displayUsername}" class="w-8 h-8 rounded border border-mc-border bg-mc-panel shrink-0 mt-0.5">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2">
+                                    ${getRoleBadge(displayRole)}
+                                    <span class="font-bold text-xs sm:text-sm ${getRoleColorClass(displayRole)} truncate">${escapeHtml(displayUsername)}</span>
+                                    <span class="text-[10px] text-gray-500">${timeStr}</span>
+                                    ${msg.isPinned ? '<span class="text-[10px] text-mc-gold font-bold"><i class="fas fa-thumbtack rotate-45"></i> 固定中</span>' : ''}
+                                </div>
+                                <button data-pin-id="${msg.id}" class="pin-toggle-btn opacity-20 group-hover:opacity-100 hover:text-mc-gold p-1 text-gray-400 transition" title="固定・解除">
+                                    <i class="fas fa-thumbtack ${msg.isPinned ? 'text-mc-gold rotate-45' : ''}"></i>
+                                </button>
+                            </div>
+                            <div class="text-xs sm:text-sm text-gray-200 mt-0.5 whitespace-pre-wrap break-words leading-relaxed">${escapeHtml(msg.content)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.querySelectorAll('.pin-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.pinId;
+                    togglePinMessage(id);
+                });
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // =========================================================
+        // コマンド処理
+        // =========================================================
+        function handleCommand(cmdInput) {
+            const parts = cmdInput.split(' ');
+            const command = parts[0].toLowerCase();
+            const args = parts.slice(1);
+
+            playSound('command');
+
+            switch (command) {
+                case '/help':
+                    state.messages.push({
+                        id: 'cmd_' + Date.now(),
+                        channel: state.currentChannel,
+                        username: 'システム',
+                        role: 'admin',
+                        avatarUrl: 'https://mc-heads.net/avatar/MHF_Chest/64',
+                        content: `--- [コマンド一覧] ---\n` + state.commands.map(c => `${c.cmd} : ${c.desc}`).join('\n'),
+                        type: 'system',
+                        createdAt: Date.now()
+                    });
+                    renderMessages();
+                    break;
+
+                case '/clear':
+                    state.messages = state.messages.filter(m => m.channel !== state.currentChannel);
+                    saveLocalMessages();
+                    renderMessages();
+                    renderPinnedBar();
+                    break;
+
+                case '/roll':
+                    const max = parseInt(args[0]) || 100;
+                    const result = Math.floor(Math.random() * max) + 1;
+                    sendMessage(`🎲 ダイスを振りました！ 出目: 【 ${result} / ${max} 】`, 'system');
+                    break;
+
+                case '/shout':
+                    const shoutMsg = args.join(' ');
+                    if (shoutMsg) sendMessage(shoutMsg, 'shout');
+                    break;
+
+                case '/me':
+                    const actionMsg = args.join(' ');
+                    if (actionMsg) sendMessage(actionMsg, 'action');
+                    break;
+
+                case '/time':
+                    const now = new Date();
+                    const mcHours = (now.getHours() * 1000) % 24000;
+                    const isDay = mcHours >= 0 && mcHours < 12000;
+                    sendMessage(`🕒 マイクラ想定時刻: ${isDay ? '☀️ 昼' : '🌙 夜'} (Ticks: ${mcHours})`, 'system');
+                    break;
+
+                default:
+                    state.messages.push({
+                        id: 'cmd_' + Date.now(),
+                        channel: state.currentChannel,
+                        username: 'システム',
+                        role: 'admin',
+                        avatarUrl: 'https://mc-heads.net/avatar/MHF_Chest/64',
+                        content: `不明なコマンドです: ${command}。/help で一覧を確認できます。`,
+                        type: 'system',
+                        createdAt: Date.now()
+                    });
+                    renderMessages();
+                    break;
+            }
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.add('-translate-x-full');
+            document.getElementById('sidebar-overlay').classList.add('hidden');
+        }
+
+        function openChannelModal(channelId = null) {
+            if (state.currentUser.role !== 'admin') {
+                alert("⚠️ チャンネル作成・編集権限はありません。（管理者のみ実行可能）");
+                return;
+            }
+
+            const modal = document.getElementById('channel-modal');
+            const title = document.getElementById('channel-modal-title');
+            const idInput = document.getElementById('channel-edit-id');
+            const nameInput = document.getElementById('channel-name-input');
+            const iconInput = document.getElementById('channel-icon-input');
+            const descInput = document.getElementById('channel-desc-input');
+            const deleteBtn = document.getElementById('channel-delete-btn');
+
+            if (channelId) {
+                const ch = state.channels.find(c => c.id === channelId);
+                if (ch) {
+                    title.textContent = "チャンネル編集";
+                    idInput.value = ch.id;
+                    nameInput.value = ch.name;
+                    iconInput.value = ch.icon || '#';
+                    descInput.value = ch.desc || '';
+                    deleteBtn.classList.remove('hidden');
+                }
+            } else {
+                title.textContent = "新規チャンネル作成";
+                idInput.value = "";
+                nameInput.value = "";
+                iconInput.value = "#";
+                descInput.value = "";
+                deleteBtn.classList.add('hidden');
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        // =========================================================
+        // DOMイベント初期化
+        // =========================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            initFirebaseAuto();
+
+            checkSavedPassword();
+
+            // コードコピーボタン
+            document.getElementById('copy-full-code-btn').addEventListener('click', copyFullApplicationCode);
+
+            // パスワードフォームイベント
+            document.getElementById('password-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const inputVal = document.getElementById('join-password-input').value.trim();
+                const targetPass = state.serverConfig.joinPassword || 'azumo';
+
+                if (inputVal === targetPass) {
+                    state.authenticated = true;
+                    localStorage.setItem('azumo_authenticated_pass', inputVal);
+                    document.getElementById('password-overlay').classList.add('hidden');
+                    document.getElementById('password-error-msg').classList.add('hidden');
+                    checkAuthAndStartPresence();
+                    playSound('click');
+                } else {
+                    document.getElementById('password-error-msg').classList.remove('hidden');
+                    playSound('command');
+                }
+            });
+
+            renderChannels();
+            renderOnlineUsers();
+            renderMessages();
+            renderPinnedBar();
+            applyServerConfigToUI();
+
+            document.getElementById('header-username').textContent = state.currentUser.username;
+            document.getElementById('header-avatar').src = `https://mc-heads.net/avatar/${state.currentUser.username}/32`;
+
+            const form = document.getElementById('chat-form');
+            const input = document.getElementById('message-input');
+            const suggestions = document.getElementById('command-suggestions');
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const val = input.value.trim();
+                if (!val) return;
+
+                if (val.startsWith('/')) {
+                    handleCommand(val);
+                } else {
+                    sendMessage(val);
+                }
+
+                input.value = '';
+                document.getElementById('char-count').textContent = '0 / 200';
+                suggestions.classList.add('hidden');
+            });
+
+            input.addEventListener('input', (e) => {
+                const val = e.target.value;
+                document.getElementById('char-count').textContent = `${val.length} / 200`;
+
+                if (val.startsWith('/')) {
+                    const filteredCmds = state.commands.filter(c => c.cmd.startsWith(val));
+                    if (filteredCmds.length > 0) {
+                        const cmdListHtml = filteredCmds.map(c => `
+                            <button type="button" class="cmd-item w-full text-left text-xs px-2 py-1 rounded hover:bg-mc-hover flex items-center justify-between">
+                                <span class="font-bold text-mc-accent">${c.cmd}</span>
+                                <span class="text-gray-400 text-[10px]">${c.desc}</span>
+                            </button>
+                        `).join('');
+                        document.getElementById('command-list').innerHTML = cmdListHtml;
+                        suggestions.classList.remove('hidden');
+
+                        document.querySelectorAll('.cmd-item').forEach(btn => {
+                            btn.addEventListener('click', () => {
+                                const cmdName = btn.querySelector('.text-mc-accent').textContent;
+                                input.value = cmdName + ' ';
+                                input.focus();
+                                suggestions.classList.add('hidden');
+                                playSound('click');
+                            });
+                        });
+                    } else {
+                        suggestions.classList.add('hidden');
+                    }
+                } else {
+                    suggestions.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('stamp-toggle-btn').addEventListener('click', () => {
+                document.getElementById('stamp-palette').classList.toggle('hidden');
+                playSound('click');
+            });
+
+            document.querySelectorAll('.stamp-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    input.value += e.target.textContent;
+                    document.getElementById('stamp-palette').classList.add('hidden');
+                    input.focus();
+                    playSound('click');
+                });
+            });
+
+            document.querySelectorAll('.quick-phrase-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    sendMessage(e.target.textContent.trim());
+                    playSound('click');
+                    closeSidebar();
+                });
+            });
+
+            document.getElementById('sound-btn').addEventListener('click', () => {
+                state.soundEnabled = !state.soundEnabled;
+                const icon = document.getElementById('sound-icon');
+                const label = document.getElementById('sound-label');
+                if (state.soundEnabled) {
+                    icon.className = 'fas fa-volume-up text-mc-gold';
+                    label.textContent = 'サウンド ON';
+                    playSound('click');
+                } else {
+                    icon.className = 'fas fa-volume-mute text-gray-500';
+                    label.textContent = 'サウンド OFF';
+                }
+            });
+
+            document.getElementById('copy-ip-btn').addEventListener('click', () => {
+                const fullAddress = `${state.serverConfig.ip}:${state.serverConfig.port}`;
+                const dummy = document.createElement('textarea');
+                dummy.value = fullAddress;
+                document.body.appendChild(dummy);
+                dummy.select();
+                document.execCommand('copy');
+                document.body.removeChild(dummy);
+
+                state.messages.push({
+                    id: 'sys_' + Date.now(),
+                    channel: state.currentChannel,
+                    username: 'システム',
+                    role: 'admin',
+                    avatarUrl: 'https://mc-heads.net/avatar/MHF_Chest/64',
+                    content: `📋 サーバーアドレス (${fullAddress}) をクリップボードにコピーしました！`,
+                    type: 'system',
+                    createdAt: Date.now()
+                });
+                renderMessages();
+                playSound('click');
+            });
+
+            document.getElementById('pinned-list-toggle').addEventListener('click', () => {
+                document.getElementById('pinned-modal').classList.toggle('hidden');
+                playSound('click');
+            });
+
+            document.getElementById('close-pinned-modal').addEventListener('click', () => {
+                document.getElementById('pinned-modal').classList.add('hidden');
+                playSound('click');
+            });
+
+            document.getElementById('pinned-bar-content').addEventListener('click', () => {
+                document.getElementById('pinned-modal').classList.remove('hidden');
+                playSound('click');
+            });
+
+            document.getElementById('search-input').addEventListener('input', renderMessages);
+            document.getElementById('clear-chat-btn').addEventListener('click', () => {
+                state.messages = state.messages.filter(m => m.channel !== state.currentChannel);
+                saveLocalMessages();
+                renderMessages();
+                renderPinnedBar();
+                playSound('click');
+            });
+
+            document.getElementById('sidebar-toggle').addEventListener('click', () => {
+                document.getElementById('sidebar').classList.toggle('-translate-x-full');
+                document.getElementById('sidebar-overlay').classList.toggle('hidden');
+                playSound('click');
+            });
+            document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+
+            // チャンネル管理ボタン（管理者限定制限）
+            document.getElementById('add-channel-btn').addEventListener('click', () => {
+                openChannelModal(null);
+                playSound('click');
+            });
+
+            document.getElementById('edit-channel-btn').addEventListener('click', () => {
+                openChannelModal(state.currentChannel);
+                playSound('click');
+            });
+
+            document.getElementById('channel-modal-close-btn').addEventListener('click', () => {
+                document.getElementById('channel-modal').classList.add('hidden');
+                playSound('click');
+            });
+
+            document.getElementById('channel-modal-save-btn').addEventListener('click', () => {
+                const editId = document.getElementById('channel-edit-id').value;
+                const name = document.getElementById('channel-name-input').value.trim();
+                const icon = document.getElementById('channel-icon-input').value.trim() || '#';
+                const desc = document.getElementById('channel-desc-input').value.trim();
+
+                if (!name) return;
+
+                const chId = editId || 'ch_' + Date.now();
+                saveChannelToCloud({ id: chId, name, icon, desc });
+                document.getElementById('channel-modal').classList.add('hidden');
+                playSound('click');
+            });
+
+            document.getElementById('channel-delete-btn').addEventListener('click', () => {
+                const editId = document.getElementById('channel-edit-id').value;
+                if (editId && confirm("本当にこのチャンネルを削除しますか？")) {
+                    deleteChannelFromCloud(editId);
+                    document.getElementById('channel-modal').classList.add('hidden');
+                    playSound('click');
+                }
+            });
+
+            // プロフィール設定
+            const profileModal = document.getElementById('profile-modal');
+            document.getElementById('profile-btn').addEventListener('click', () => {
+                document.getElementById('modal-mcid-input').value = state.currentUser.username;
+                document.getElementById('modal-name-preview').textContent = state.currentUser.username;
+                document.getElementById('modal-role-preview').textContent = getRoleName(state.currentUser.role);
+                document.getElementById('modal-avatar-preview').src = `https://mc-heads.net/avatar/${state.currentUser.username}/64`;
+                profileModal.classList.remove('hidden');
+                playSound('click');
+            });
+
+            document.getElementById('modal-close-btn').addEventListener('click', () => {
+                profileModal.classList.add('hidden');
+                playSound('click');
+            });
+
+            document.getElementById('modal-preview-btn').addEventListener('click', () => {
+                const mcid = document.getElementById('modal-mcid-input').value.trim() || 'Steve';
+                document.getElementById('modal-avatar-preview').src = `https://mc-heads.net/avatar/${mcid}/64`;
+                document.getElementById('modal-name-preview').textContent = mcid;
+                playSound('click');
+            });
+
+            // プロフィール保存（同名MCID重複チェック＆一元更新）
+            document.getElementById('modal-save-btn').addEventListener('click', () => {
+                const newMcid = document.getElementById('modal-mcid-input').value.trim() || 'Steve';
+
+                // 他のプレイヤーとMCIDが重複していないか判定
+                if (isUsernameTaken(newMcid, userKey)) {
+                    alert(`⚠️ そのマイクラユーザー名 (${newMcid}) は既に他のプレイヤーが登録・使用しています。別のユーザー名を入力してください。`);
+                    return;
+                }
+
+                state.currentUser.username = newMcid;
+                state.currentUser.avatarUrl = `https://mc-heads.net/avatar/${newMcid}/64`;
+
+                localStorage.setItem('azumo_mcid', newMcid);
+
+                document.getElementById('header-username').textContent = newMcid;
+                document.getElementById('header-avatar').src = `https://mc-heads.net/avatar/${newMcid}/32`;
+
+                saveUserProfileToCloud();
+                profileModal.classList.add('hidden');
+                renderMessages();
+                playSound('click');
+            });
+
+            // サーバー設定（管理者権限限定制限）
+            const serverModal = document.getElementById('server-settings-modal');
+            document.getElementById('server-settings-btn').addEventListener('click', () => {
+                if (state.currentUser.role !== 'admin') {
+                    alert("⚠️ サーバー設定の閲覧・変更には管理者権限が必要です。");
+                    return;
+                }
+
+                document.getElementById('setting-join-password').value = state.serverConfig.joinPassword || 'azumo';
+                document.getElementById('setting-server-name').value = state.serverConfig.name;
+                document.getElementById('setting-server-ip').value = state.serverConfig.ip;
+                document.getElementById('setting-server-port').value = state.serverConfig.port;
+                document.getElementById('setting-server-version').value = state.serverConfig.version;
+                document.getElementById('setting-max-players').value = state.serverConfig.maxPlayers;
+                document.getElementById('setting-announcement').value = state.serverConfig.announcement;
+
+                serverModal.classList.remove('hidden');
+                playSound('click');
+            });
+
+            document.getElementById('server-modal-close-btn').addEventListener('click', () => {
+                serverModal.classList.add('hidden');
+                playSound('click');
+            });
+
+            document.getElementById('server-modal-save-btn').addEventListener('click', () => {
+                if (state.currentUser.role !== 'admin') {
+                    alert("⚠️ サーバー設定保存権限がありません。");
+                    return;
+                }
+
+                const newConfig = {
+                    joinPassword: document.getElementById('setting-join-password').value.trim() || 'azumo',
+                    name: document.getElementById('setting-server-name').value.trim() || 'AZUMOFUYUKI',
+                    ip: document.getElementById('setting-server-ip').value.trim() || 'azumofuyuki.mcserver.jp',
+                    port: parseInt(document.getElementById('setting-server-port').value) || 25565,
+                    version: document.getElementById('setting-server-version').value.trim() || '1.20.4',
+                    maxPlayers: parseInt(document.getElementById('setting-max-players').value) || 20,
+                    announcement: document.getElementById('setting-announcement').value.trim() || '📢 告知メッセージなし'
+                };
+
+                saveServerConfig(newConfig);
+                localStorage.setItem('azumo_authenticated_pass', newConfig.joinPassword);
+                serverModal.classList.add('hidden');
+                playSound('click');
+            });
+
+            // JSONデータバックアップ & 復元
+            document.getElementById('export-data-btn').addEventListener('click', () => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state.messages, null, 2));
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", `azumofuyuki_chat_export_${Date.now()}.json`);
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+                playSound('click');
+            });
+
+            document.getElementById('import-data-btn').addEventListener('click', () => {
+                document.getElementById('import-file-input').click();
+            });
+
+            document.getElementById('import-file-input').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        if (Array.isArray(imported)) {
+                            state.messages = imported;
+                            saveLocalMessages();
+                            renderMessages();
+                            renderPinnedBar();
+                            alert("チャットログの復元が完了しました！");
+                        }
+                    } catch (err) {
+                        alert("有効なチャットデータJSONファイルではありません。");
+                    }
+                };
+                reader.readAsText(file);
+            });
+        });
+    </script>
+</body>
+</html>
